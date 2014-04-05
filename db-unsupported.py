@@ -92,7 +92,8 @@ if __name__ == '__main__':
     if not basedir:
         sys.stderr.write('Could not get FS-UAE base directory.\n')
         quit(1)
-    db = os.path.join(basedir, 'Data', 'Game Database.sqlite')
+    db = os.path.expanduser('~/Documents/FS-UAE/Data/Game Database.sqlite')
+    #db = os.path.join(basedir, 'Data', 'Game Database.sqlite')
     with Pool(processes=2) as pool:
         floppy_list_pool = pool.apply_async(get_floppy_list, [path])
         db_checksums_pool = pool.apply_async(get_db_checksums, [db])
