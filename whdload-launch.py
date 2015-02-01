@@ -10,6 +10,12 @@ from uuid import UUID
 from zlib import decompress
 from json import loads
 from hashlib import sha1
+try:
+    import lhafile
+except ImportError:
+    lha_support = False
+else:
+    lha_support = True
 
 def stderrprint(text):
     sys.stderr.write('{0}\n'.format(text))
@@ -63,42 +69,50 @@ def get_uuid_from_slave(database, slave_name, slave_sha1):
             continue
         for item  in loads(file_list):
             name = item.get('name')
-            #if not name:
-             #   continue
             if slave_name in name:
                 checksum = item.get('sha1')
                 if checksum == slave_sha1:
-                    uuid = UUID(hexlify(fetched[1]).decode())
+                    uuid = str(UUID(hexlify(fetched[1]).decode()))
                     break
     cursor.close()
     conn.close()
-    return str(uuid)
+    return uuid
 
 
 # main starts here
 try:
     cmdlinearg = sys.argv[1]
 except IndexError:
-    errorquit('Usage: {0} whdloadgame.zip'.format(sys.argv[0]))
+    errorquit('Usage: {0} whdloadgame.zip/.lha'.format(sys.argv[0]))
 
-try:
-    whdlzip = zipfile.ZipFile(cmdlinearg)
-except zipfile.BadZipFile:
-    errorquit('Not a valid ZIP file: {0}'.format(cmdlinearg))
-except FileNotFoundError:
+if not os.path.isfile(cmdlinearg):
     errorquit('File not found: {0}'.format(cmdlinearg))
 
+if cmdlinearg.lower().endswith('.zip'):
+    try:
+        whdlarc = zipfile.ZipFile(cmdlinearg)
+    except zipfile.BadZipFile:
+        errorquit('Not a valid ZIP file: {0}'.format(cmdlinearg))
+elif cmdlinearg.lower().endswith('.lha') and lha_support is True:
+    try:
+        whdlarc = lhafile.LhaFile(cmdlinearg)
+    except lhafile.BadLhaFile:
+        errorquit('Not a valid LHA file: {0}'.format(cmdlinearg))
+else:
+    errorquit('Unknown file type: {0}'.format(cmdlinearg))
+
 slave_name = None
-for f in whdlzip.namelist():
-    if f.lower().endswith('.slave') and whdlzip.getinfo(f).file_size < 1000000:
-        slave_name = os.path.basename(f)
-        slave_sha1 = sha1(whdlzip.read(f)).hexdigest()
-        break
+for f in whdlarc.namelist():
+    if f.lower().endswith('.slave') and \
+        whdlarc.infolist()[whdlarc.namelist().index(f)].file_size < 1000000:
+            slave_name = os.path.basename(f)
+            slave_sha1 = sha1(whdlarc.read(f)).hexdigest()
+            break
 
 if not slave_name:
     errorquit('Could not find whdload slave file.')
 
-print('Found slave: {0}'.format(slave_name))
+print('Found slave: {0} ({1})'.format(slave_name, slave_sha1))
 
 basedir = get_basedir()
 if not basedir:
@@ -110,7 +124,7 @@ if not os.path.isfile(database):
 
 uuid = get_uuid_from_slave(database, slave_name, slave_sha1)
 if not uuid:
-    errorquit('{0} was not found in the database.'.format(slave_name))
+    errorquit('Slave was not found in the database.')
 
-print(' Found UUID: {0}'.format(uuid))
+print('Found UUID: {0}'.format(uuid))
 subprocess.call(['fs-uae-launcher', uuid])
