@@ -9,6 +9,7 @@ from binascii import hexlify
 from uuid import UUID
 from zlib import decompress
 from json import loads
+from hashlib import sha1
 
 def stderrprint(text):
     sys.stderr.write('{0}\n'.format(text))
@@ -46,7 +47,7 @@ def get_basedir():
             return path
     return None
 
-def get_uuid_from_slave(database, slave_name):
+def get_uuid_from_slave(database, slave_name, slave_sha1):
     conn = sqlite3.connect(database)
     cursor = conn.cursor()
     cursor.execute("SELECT data,uuid FROM game")
@@ -62,11 +63,13 @@ def get_uuid_from_slave(database, slave_name):
             continue
         for item  in loads(file_list):
             name = item.get('name')
-            if not name:
-                continue
+            #if not name:
+             #   continue
             if slave_name in name:
-                uuid = UUID(hexlify(fetched[1]).decode())
-                break
+                checksum = item.get('sha1')
+                if checksum == slave_sha1:
+                    uuid = UUID(hexlify(fetched[1]).decode())
+                    break
     cursor.close()
     conn.close()
     return str(uuid)
@@ -87,8 +90,9 @@ except FileNotFoundError:
 
 slave_name = None
 for f in whdlzip.namelist():
-    if f.lower().endswith('.slave'):
+    if f.lower().endswith('.slave') and whdlzip.getinfo(f).file_size < 1000000:
         slave_name = os.path.basename(f)
+        slave_sha1 = sha1(whdlzip.read(f)).hexdigest()
         break
 
 if not slave_name:
@@ -104,7 +108,7 @@ database = os.path.join(basedir, 'Cache', 'oagd.net.sqlite')
 if not os.path.isfile(database):
     errorquit('Could not find game database.')
 
-uuid = get_uuid_from_slave(database, slave_name)
+uuid = get_uuid_from_slave(database, slave_name, slave_sha1)
 if not uuid:
     errorquit('{0} was not found in the database.'.format(slave_name))
 
