@@ -60,7 +60,7 @@ def get_floppy_list(gamedir):
 def get_db_checksums(db):
     sys.stderr.write('Searching for floppy images in OAGD...\n')
     db_checksums = set()
-    fexts = ('.adf', '.ipf')
+    fexts = ('.adf', '.ipf', '.dms')
     conn = sqlite3.connect(db)
     cursor = conn.cursor()
     cursor.execute("SELECT data FROM game")
@@ -92,8 +92,7 @@ if __name__ == '__main__':
     if not basedir:
         sys.stderr.write('Could not get FS-UAE base directory.\n')
         quit(1)
-    db = os.path.expanduser('~/Documents/FS-UAE/Data/Game Database.sqlite')
-    #db = os.path.join(basedir, 'Data', 'Game Database.sqlite')
+    db = os.path.join(basedir, 'Cache', 'oagd.net.sqlite')
     with Pool(processes=2) as pool:
         floppy_list_pool = pool.apply_async(get_floppy_list, [path])
         db_checksums_pool = pool.apply_async(get_db_checksums, [db])

@@ -10,11 +10,11 @@ from shutil import copyfile
 try:
     in_db = sys.argv[1]
 except IndexError:
-    print('Usage: {0} /path/to/Game Database.sqlite'.format(sys.argv[0]))
+    print('Usage: {0} /path/to/oagd.net..sqlite'.format(sys.argv[0]))
     quit()
 
 out_db = os.path.join(os.path.dirname(
-    in_db), 'Game Database Uncompressed.sqlite')
+    in_db), 'oagd.net-uncompressed.sqlite')
 
 copyfile(in_db, out_db)
 conn = sqlite3.connect(out_db)

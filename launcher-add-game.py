@@ -112,7 +112,7 @@ if not basedir:
     quit(1)
 
 global db
-db = os.path.join(basedir, 'Data', 'Game Database.sqlite')
+db = os.path.join(basedir, 'Cache', 'oagd.net..sqlite')
 if not os.path.isfile(db):
     sys.stderr.write('Could not find local game database.\n')
     quit(1)

@@ -14,7 +14,7 @@ parser.add_argument('--search', help='if KEY1 has VALUE print value of KEY2', na
 
 args = parser.parse_args()
 
-db = '~/FS-UAE/Data/Game Database Uncompressed.sqlite'
+db = '~/FS-UAE/Cache/oagd.net.sqlite'
 
 conn = sqlite3.connect(os.path.expanduser(db))
 c = conn.cursor()
