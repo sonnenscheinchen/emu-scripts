@@ -56,7 +56,7 @@ def get_basedir():
 def get_uuid_from_slave(database, slave_name, slave_sha1):
     conn = sqlite3.connect(database)
     cursor = conn.cursor()
-    cursor.execute("SELECT data,uuid FROM game")
+    cursor.execute("SELECT data,uuid FROM game WHERE data != ''")
     uuid = None
     while uuid is None:
         fetched = cursor.fetchone()
@@ -77,6 +77,20 @@ def get_uuid_from_slave(database, slave_name, slave_sha1):
     cursor.close()
     conn.close()
     return uuid
+
+def game_was_scanned(launcher_database, uuid):
+    conn = sqlite3.connect(launcher_database)
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT name FROM game_variant WHERE uuid=? AND have=4", (uuid,))
+    variant_name = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    if variant_name:
+        print('Found variant: {0}'.format(variant_name[0]))
+        return True
+    else:
+        return False
 
 
 # main starts here
@@ -120,11 +134,21 @@ if not basedir:
 
 database = os.path.join(basedir, 'Cache', 'oagd.net.sqlite')
 if not os.path.isfile(database):
-    errorquit('Could not find game database.')
+    errorquit('Could not find local oagd.net database.')
 
 uuid = get_uuid_from_slave(database, slave_name, slave_sha1)
 if not uuid:
     errorquit('Slave was not found in the database.')
 
 print('Found UUID: {0}'.format(uuid))
+
+launcher_database = os.path.join(basedir, 'Data', 'Database.sqlite')
+if not os.path.isfile(launcher_database):
+    errorquit('Could not find fs-uae-launcher database.')
+
+if not game_was_scanned(launcher_database, uuid):
+    cmdlinearg_dir = os.path.dirname(os.path.realpath(cmdlinearg))
+    errorquit('Game was not scanned by fs-uae-launcher.\n\
+Please add {0} and rescan your files.'.format(cmdlinearg_dir))
+
 subprocess.call(['fs-uae-launcher', uuid])
