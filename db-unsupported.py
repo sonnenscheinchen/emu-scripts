@@ -63,7 +63,7 @@ def get_db_checksums(db):
     fexts = ('.adf', '.ipf', '.dms')
     conn = sqlite3.connect(db)
     cursor = conn.cursor()
-    cursor.execute("SELECT data FROM game")
+    cursor.execute("SELECT data FROM game WHERE data !=''")
     while True:
         fetched = cursor.fetchone()
         if not fetched:

@@ -65,7 +65,7 @@ def get_config_from_game_id(game_id):
 def get_gamelist_from_searchstring(searchstring, fileplatform):
     conn = sqlite3.connect(db)
     cursor = conn.cursor()
-    cursor.execute("SELECT data,id FROM game")
+    cursor.execute("SELECT data,id FROM game WHERE data != ''")
     gamelist = []
     while True:
         fetched = cursor.fetchone()

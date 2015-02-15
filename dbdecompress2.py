@@ -10,7 +10,7 @@ from shutil import copyfile
 try:
     in_db = sys.argv[1]
 except IndexError:
-    print('Usage: {0} /path/to/oagd.net..sqlite'.format(sys.argv[0]))
+    print('Usage: {0} /path/to/oagd.net.sqlite'.format(sys.argv[0]))
     quit()
 
 out_db = os.path.join(os.path.dirname(
@@ -20,7 +20,7 @@ copyfile(in_db, out_db)
 conn = sqlite3.connect(out_db)
 cursor = conn.cursor()
 cursor2 = conn.cursor()
-cursor.execute('SELECT id,uuid,data FROM game')
+cursor.execute("SELECT id,uuid,data FROM game WHERE data !=''")
 while True:
     fetched = cursor.fetchone()
     if not fetched:

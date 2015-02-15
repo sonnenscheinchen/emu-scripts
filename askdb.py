@@ -18,7 +18,7 @@ db = '~/FS-UAE/Cache/oagd.net.sqlite'
 
 conn = sqlite3.connect(os.path.expanduser(db))
 c = conn.cursor()
-c.execute('select data from game')
+c.execute("SELECT data FROM game WHERE data != ''")
 res = set()
 
 while True:
