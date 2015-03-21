@@ -1,1 +1,0 @@
-/home/stw/src/fsuaefloppy/fs-uae.py
