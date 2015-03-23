@@ -20,13 +20,10 @@ class Floppy(QtGui.QMenu):
                 floppy = '(empty)'
             self.actions[n] = self.addAction('DF{0}: {1}'.format(n, floppy))
             self.actions[n].setData(n)
-            self.actions[n].triggered.connect(self.hide)
-            
-    def hide_menu(self):
-        self.hide()
 
     def mouseReleaseEvent(self, event):
         action = self.activeAction()
+        event.accept()
         if action is None:
             return
         drive_no = action.data()
@@ -51,15 +48,14 @@ class Eject(QtGui.QMenu):
         QtGui.QMenu.__init__(self, parent=None)
         self.emu = emu
         self.actions = [ None ] * num_drives
-        #self.actions = []
         for n in range(num_drives):
             if self.emu.getFloppyImagePath(n):
                 self.actions[n] = self.addAction('Eject DF{0}'.format(n))
                 self.actions[n].setData(n)
-                self.actions[n].triggered.connect(self.hide)
 
     def mouseReleaseEvent(self, event):
         action = self.activeAction()
+        event.accept()
         if action is None:
             return
         drive_no = action.data()
