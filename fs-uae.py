@@ -1,35 +1,82 @@
 #!/usr/bin/env python3
 
+import subprocess
+import os
 import sys
 import fsuae
 from PyQt4 import QtGui, QtCore
 from time import sleep
 
+def get_basedir():
+    if os.path.isdir(str(os.environ.get('FS_UAE_BASE_DIR'))):
+        return os.environ['FS_UAE_BASE_DIR']
+    basedirconf = os.path.expanduser('~/.config/fs-uae/base-dir')
+    if os.path.isfile(basedirconf):
+        with open(basedirconf) as f:
+            path = f.readline().strip()
+        if os.path.isdir(path):
+            return path
+    basedirconf = os.path.expanduser('~/.config/fs-uae/fs-uae.conf')
+    if os.path.isfile(basedirconf):
+        with open(basedirconf) as f:
+            for line in f:
+                if line.split('=')[0].strip() == 'base_dir':
+                    path = line.split('=')[1].strip()
+                    if os.path.isdir(path):
+                        return path
+    try:
+        docdir = subprocess.check_output(
+            ['xdg-user-dir', 'DOCUMENTS']).decode().strip(os.linesep)
+        path = os.path.join(docdir, 'FS-UAE')
+        if os.path.isdir(path):
+            return path
+    except:
+        path = os.path.join(os.path.expanduser('~/FS-UAE'))
+        if os.path.isdir(path):
+            return path
+    return None
+
+def get_floppylist():
+    floppylist = []
+    basedir = FsuaeTool.get_basedir()
+    if basedir is None:
+        return floppylist
+    uaelog = os.path.join(basedir, 'Cache', 'Logs', 'debug.uae')
+    if not os.path.isfile(uaelog):
+        return floppylist
+    with open(uaelog, 'rt') as f:
+        for line in f:
+            if line.startswith('diskimage'):
+                image = line.split('=')[1].strip()
+                if os.path.isfile(image):
+                    floppylist.append(os.path.realpath(image))
+    return floppylist
+
 
 class Floppy(QtGui.QMenu):
-    
-    def __init__(self, num_drives, emu):
+
+    def __init__(self, num_drives, emu, floppylist):
         QtGui.QMenu.__init__(self, parent=None)
         self.emu = emu
-        self.actions = [ None ] * num_drives
-        for n in range(num_drives):
+        self.num_drives = num_drives
+        for n in range(self.num_drives):
             floppy = self.emu.getFloppyImagePath(n)
             if not floppy:
                 floppy = '(empty)'
-            self.actions[n] = self.addAction('DF{0}: {1}'.format(n, floppy))
-            self.actions[n].setData(n)
+            action = self.addAction('DF{0}: {1}'.format(n, floppy))
+            action.setData((n, None))
+        self.triggered.connect(self.menuitem_clicked)
+        if len(floppylist) > 0:
+            self.add_floppylist_menu(floppylist)
 
-    def mouseReleaseEvent(self, event):
-        action = self.activeAction()
-        event.accept()
-        if action is None:
-            return
-        drive_no = action.data()
-        self.insert(drive_no)
-    
-    def insert(self, drive_no):
-        image = self.select_image()
-        if not image:
+    def menuitem_clicked(self, action):
+        drive_no, image = action.data()
+        self.insert(drive_no, image)
+
+    def insert(self, drive_no, image):
+        if image is None:
+            image = self.select_image()
+        if image is None:
             return
         self.emu.setFloppyImagePath(drive_no, image)
 
@@ -39,26 +86,33 @@ class Floppy(QtGui.QMenu):
                 'Floppy disk images (*.adf *.dms *.ipf *.adz);;All Files (*)'))
         return image
 
+    def add_floppylist_menu(self, floppylist):
+            self.addSeparator()
+            submenu = self.addMenu('Floppy List')
+            for floppy in floppylist:
+                subsubmenu = submenu.addMenu(floppy)
+                for n in range(self.num_drives):
+                    action = subsubmenu.addAction('Into DF{0}:'.format(n))
+                    action.setData((n, floppy))
+            submenu.triggered.connect(self.menuitem_clicked)
+            subsubmenu.triggered.connect(self.menuitem_clicked)
+
 
 class Eject(QtGui.QMenu):
-    
+
     def __init__(self, num_drives, emu):
         QtGui.QMenu.__init__(self, parent=None)
         self.emu = emu
-        self.actions = [ None ] * num_drives
         for n in range(num_drives):
             if self.emu.getFloppyImagePath(n):
-                self.actions[n] = self.addAction('Eject DF{0}'.format(n))
-                self.actions[n].setData(n)
+                action = self.addAction('Eject DF{0}'.format(n))
+                action.setData(n)
+        self.triggered.connect(self.menuitem_clicked)
 
-    def mouseReleaseEvent(self, event):
-        action = self.activeAction()
-        event.accept()
-        if action is None:
-            return
+    def menuitem_clicked(self, action):
         drive_no = action.data()
-        self.eject(drive_no)   
-    
+        self.eject(drive_no)
+
     def eject(self, drive_no):
         self.emu.setFloppyImagePath(drive_no, '')
 
@@ -78,6 +132,7 @@ class FSUAEtray(QtGui.QDialogButtonBox):
             self.num_drives = 0
         else:
             self.num_drives = self.emu.getNumFloppyDrives()
+        self.floppylist = get_floppylist()
         self.systray = QtGui.QSystemTrayIcon(self.icon, parent=self)
         self.systray.activated.connect(self.icon_clicked)
         self.systray.show()
@@ -91,7 +146,7 @@ class FSUAEtray(QtGui.QDialogButtonBox):
 
     def icon_clicked(self, reason):
         if reason == QtGui.QSystemTrayIcon.Context:
-            self.menu = Floppy(self.num_drives, self.emu)
+            self.menu = Floppy(self.num_drives, self.emu, self.floppylist)
         else:
             self.menu = Eject(self.num_drives, self.emu)
         if not self.menu.isEmpty():
@@ -119,7 +174,7 @@ def main():
     emu = fsuae.Emu()
     app = QtGui.QApplication(sys.argv)
     style = app.style()
-    icon = QtGui.QIcon(style.standardPixmap(QtGui.QStyle.SP_DriveFDIcon))
+    icon = QtGui.QIcon(style.standardIcon(QtGui.QStyle.SP_DriveFDIcon))
     tray = FSUAEtray(icon, emu)
     tray.show()
     sys.exit(app.exec_())
