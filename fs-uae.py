@@ -4,7 +4,7 @@ import subprocess
 import os
 import sys
 import fsuae
-from PyQt4 import QtGui, QtCore
+from PyQt5 import QtWidgets, QtGui, QtCore
 from time import sleep
 
 def get_basedir():
@@ -53,10 +53,10 @@ def get_floppylist():
     return floppylist
 
 
-class Floppy(QtGui.QMenu):
+class Floppy(QtWidgets.QMenu):
 
     def __init__(self, num_drives, emu, floppylist):
-        QtGui.QMenu.__init__(self, parent=None)
+        QtWidgets.QMenu.__init__(self, parent=None)
         self.emu = emu
         self.num_drives = num_drives
         for n in range(self.num_drives):
@@ -76,12 +76,12 @@ class Floppy(QtGui.QMenu):
     def insert(self, drive_no, image):
         if image is None:
             image = self.select_image()
-        if image is None:
+        if image is '':
             return
         self.emu.setFloppyImagePath(drive_no, image)
 
     def select_image(self):
-        image = QtGui.QFileDialog.getOpenFileName(
+        image, filter = QtWidgets.QFileDialog.getOpenFileName(
             parent=self, caption='Select a disk image', filter=(
                 'Floppy disk images (*.adf *.dms *.ipf *.adz);;All Files (*)'))
         return image
@@ -98,10 +98,10 @@ class Floppy(QtGui.QMenu):
             subsubmenu.triggered.connect(self.menuitem_clicked)
 
 
-class Eject(QtGui.QMenu):
+class Eject(QtWidgets.QMenu):
 
     def __init__(self, num_drives, emu):
-        QtGui.QMenu.__init__(self, parent=None)
+        QtWidgets.QMenu.__init__(self, parent=None)
         self.emu = emu
         for n in range(num_drives):
             if self.emu.getFloppyImagePath(n):
@@ -117,23 +117,23 @@ class Eject(QtGui.QMenu):
         self.emu.setFloppyImagePath(drive_no, '')
 
 
-class FSUAEtray(QtGui.QDialogButtonBox):
+class FSUAEtray(QtWidgets.QDialogButtonBox):
 
     def __init__(self, icon, emu):
-        QtGui.QDialogButtonBox.__init__(self)
+        QtWidgets.QDialogButtonBox.__init__(self)
         self.icon = icon
         self.emu = emu
         self.run_emulator()
         connection_error = self.connect_emu()
         if connection_error:
-            QtGui.QMessageBox.warning(self, 'Lua Shell connection error',
+            QtWidgets.QMessageBox.warning(self, 'Lua Shell connection error',
                                       connection_error,
-                                      QtGui.QMessageBox.Ok)
+                                      QtWidgets.QMessageBox.Ok)
             self.num_drives = 0
         else:
             self.num_drives = self.emu.getNumFloppyDrives()
         self.floppylist = get_floppylist()
-        self.systray = QtGui.QSystemTrayIcon(self.icon, parent=self)
+        self.systray = QtWidgets.QSystemTrayIcon(self.icon, parent=self)
         self.systray.activated.connect(self.icon_clicked)
         self.systray.show()
 
@@ -145,7 +145,7 @@ class FSUAEtray(QtGui.QDialogButtonBox):
         self.proc.start('fs-uae', sys.argv[1:])
 
     def icon_clicked(self, reason):
-        if reason == QtGui.QSystemTrayIcon.Context:
+        if reason == QtWidgets.QSystemTrayIcon.Context:
             self.menu = Floppy(self.num_drives, self.emu, self.floppylist)
         else:
             self.menu = Eject(self.num_drives, self.emu)
@@ -172,9 +172,9 @@ class FSUAEtray(QtGui.QDialogButtonBox):
 
 def main():
     emu = fsuae.Emu()
-    app = QtGui.QApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
     style = app.style()
-    icon = QtGui.QIcon(style.standardIcon(QtGui.QStyle.SP_DriveFDIcon))
+    icon = QtGui.QIcon(style.standardIcon(QtWidgets.QStyle.SP_DriveFDIcon))
     tray = FSUAEtray(icon, emu)
     tray.show()
     sys.exit(app.exec_())
