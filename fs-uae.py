@@ -38,7 +38,7 @@ def get_basedir():
 
 def get_floppylist():
     floppylist = []
-    basedir = FsuaeTool.get_basedir()
+    basedir = get_basedir()
     if basedir is None:
         return floppylist
     uaelog = os.path.join(basedir, 'Cache', 'Logs', 'debug.uae')
