@@ -117,11 +117,10 @@ class Eject(QtWidgets.QMenu):
         self.emu.setFloppyImagePath(drive_no, '')
 
 
-class FSUAEtray(QtWidgets.QDialogButtonBox):
+class FSUAEtray(QtWidgets.QSystemTrayIcon):
 
-    def __init__(self, icon, emu):
-        QtWidgets.QDialogButtonBox.__init__(self)
-        self.icon = icon
+    def __init__(self, icon, emu, parent=None):
+        QtWidgets.QSystemTrayIcon.__init__(self, icon, parent=parent)
         self.emu = emu
         self.run_emulator()
         connection_error = self.connect_emu()
@@ -133,9 +132,8 @@ class FSUAEtray(QtWidgets.QDialogButtonBox):
         else:
             self.num_drives = self.emu.getNumFloppyDrives()
         self.floppylist = get_floppylist()
-        self.systray = QtWidgets.QSystemTrayIcon(self.icon, parent=self)
-        self.systray.activated.connect(self.icon_clicked)
-        self.systray.show()
+        self.activated.connect(self.icon_clicked)
+        self.show()
 
     def run_emulator(self):
         self.proc = QtCore.QProcess(self)
@@ -153,7 +151,7 @@ class FSUAEtray(QtWidgets.QDialogButtonBox):
             self.menu.exec_(QtGui.QCursor.pos())
 
     def exit_app(self, returncode):
-        self.close()
+        self.deleteLater()
         sys.exit(returncode)
 
     def connect_emu(self):
