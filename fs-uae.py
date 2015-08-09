@@ -94,7 +94,6 @@ class Floppy(QtWidgets.QMenu):
                 for n in range(self.num_drives):
                     action = subsubmenu.addAction('Into DF{0}:'.format(n))
                     action.setData((n, floppy))
-            submenu.triggered.connect(self.menuitem_clicked)
             subsubmenu.triggered.connect(self.menuitem_clicked)
 
 
@@ -125,13 +124,14 @@ class FSUAEtray(QtWidgets.QSystemTrayIcon):
         self.run_emulator()
         connection_error = self.connect_emu()
         if connection_error:
-            QtWidgets.QMessageBox.warning(self, 'Lua Shell connection error',
-                                      connection_error,
-                                      QtWidgets.QMessageBox.Ok)
+            QtWidgets.QMessageBox.warning(None, 'Lua Shell connection error',
+                                          connection_error,
+                                          QtWidgets.QMessageBox.Ok)
             self.num_drives = 0
+            self.floppylist = []
         else:
             self.num_drives = self.emu.getNumFloppyDrives()
-        self.floppylist = get_floppylist()
+            self.floppylist = get_floppylist()
         self.activated.connect(self.icon_clicked)
         self.show()
 
